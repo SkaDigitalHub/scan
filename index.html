@@ -1,846 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QR → Google Forms Attendance Scanner</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Attendance Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <style>
-    :root {
-      --primary-color: #0366d6;
-      --secondary-color: #6c757d;
-      --success-color: #28a745;
-      --danger-color: #dc3545;
-      --border-radius: 8px;
-      --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      --transition-speed: 0.3s;
-    }
-    
-    * {
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: Inter, system-ui, Segoe UI, Roboto, 'Helvetica Neue', Arial, sans-serif;
-      margin: 0;
-      padding: 16px;
-      color: #111;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #6e8efb, #a777e3);
-      line-height: 1.5;
-    }
-    
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    
-    h1 {
-      margin: 0 0 12px 0;
-      font-size: clamp(1.5rem, 4vw, 2rem);
-      color: white;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-    
-    .subtitle {
-      font-size: clamp(0.875rem, 2vw, 1rem);
-      color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 20px;
-    }
-    
-    .row {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    
-    .card {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 16px;
-      border-radius: var(--border-radius);
-      box-shadow: var(--card-shadow);
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      flex: 1;
-      min-width: 300px;
-      transition: transform var(--transition-speed), box-shadow var(--transition-speed);
-    }
-    
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-    }
-    
-    #video-container {
-      position: relative;
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    
-    #video {
-      width: 100%;
-      height: auto;
-      max-height: 70vh;
-      background: #000;
-      border-radius: var(--border-radius);
-      object-fit: cover;
-    }
-    
-    #scan-indicator {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      z-index: 1;
-    }
-    
-    .scan-line {
-      width: 90%;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: 3px;
-      animation: scan 2s infinite ease-in-out;
-      box-shadow: 0 0 10px rgba(110, 142, 251, 0.7);
-    }
-    
-    @keyframes scan {
-      0%, 100% { transform: translateY(-100%); opacity: 0; }
-      10%, 90% { opacity: 1; }
-      50% { transform: translateY(100%); }
-    }
-    
-    #canvas {
-      display: none;
-    }
-    
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    
-    button {
-      padding: 10px 16px;
-      border-radius: var(--border-radius);
-      border: none;
-      background: var(--primary-color);
-      color: white;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all var(--transition-speed);
-      flex: 1;
-      min-width: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    button:active {
-      transform: translateY(0);
-    }
-    
-    button.secondary {
-      background: var(--secondary-color);
-    }
-    
-    button.success {
-      background: var(--success-color);
-    }
-    
-    button.danger {
-      background: var(--danger-color);
-    }
-    
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 12px;
-      font-size: 14px;
-    }
-    
-    th, td {
-      text-align: left;
-      padding: 10px 12px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    th {
-      background: #f8f9fa;
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-    }
-    
-    .status-ok {
-      color: var(--success-color);
-      font-weight: 600;
-    }
-    
-    .status-fail {
-      color: var(--danger-color);
-      font-weight: 600;
-    }
-    
-    label {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-    
-    input[type="text"], textarea {
-      padding: 10px;
-      border-radius: var(--border-radius);
-      border: 1px solid #ddd;
-      width: 100%;
-      font-family: inherit;
-      transition: border-color var(--transition-speed);
-    }
-    
-    input[type="text"]:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
-    }
-    
-    .small {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.4;
-    }
-    
-    #mapping {
-      max-width: 100%;
-    }
-    
-    .stats {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    
-    .stats-badge {
-      background: var(--primary-color);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    
-    .attendance-table-container {
-      overflow-x: auto;
-      max-height: 400px;
-      overflow-y: auto;
-      border-radius: var(--border-radius);
-      border: 1px solid #e3e3e3;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-      .row {
-        flex-direction: column;
-      }
-      
-      .card {
-        width: 100%;
-        min-width: auto;
-      }
-      
-      #video-container {
-        max-width: 100%;
-      }
-      
-      button {
-        min-width: 100px;
-        padding: 8px 12px;
-        font-size: 13px;
-      }
-      
-      th, td {
-        padding: 8px 10px;
-        font-size: 13px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      body {
-        padding: 12px;
-      }
-      
-      .card {
-        padding: 12px;
-      }
-      
-      .controls {
-        flex-direction: column;
-      }
-      
-      button {
-        width: 100%;
-      }
-    }
-    
-    /* Toast notifications */
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: var(--border-radius);
-      background: #333;
-      color: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1000;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: transform 0.3s, opacity 0.3s;
-    }
-    
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
-    }
-    
-    .toast.success {
-      background: var(--success-color);
-    }
-    
-    .toast.error {
-      background: var(--danger-color);
-    }
-    
-    /* Loading spinner */
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+    h1 { text-align: center; }
+    .scanner-container { max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 10px; }
+    video { width: 100%; border-radius: 10px; }
+    .attendance-list { margin-top: 20px; background: #fff; padding: 15px; border-radius: 10px; max-height: 300px; overflow-y: auto; }
+    .attendance-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #ddd; }
+    .status-present { color: green; font-weight: bold; }
+    .status-duplicate { color: red; font-weight: bold; }
+    #scanFeedback { text-align: center; margin: 10px 0; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+    .controls { text-align: center; margin-top: 10px; }
+    .controls button { margin: 0 5px; padding: 8px 16px; }
+    .stats { max-width: 600px; margin: 20px auto; background: #fff; padding: 15px; border-radius: 10px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>QR → Google Forms Attendance Scanner</h1>
-    <div class="subtitle">Uses your camera to scan QR codes that contain Google Forms <code>formResponse</code> submission links. Auto-submits and shows attendance. Single-file app.</div>
-
-    <div class="row">
-      <div class="card">
-        <div id="video-container">
-          <video id="video" playsinline autoplay muted></video>
-          <div id="scan-indicator">
-            <div class="scan-line"></div>
-          </div>
-        </div>
-        <div style="margin-top: 12px">
-          <label class="small">Camera / Controls</label>
-          <div class="controls">
-            <button id="startBtn">
-              <span class="spinner" style="display:none" id="startSpinner"></span>
-              <span id="startText">Start camera</span>
-            </button>
-            <button id="stopBtn" class="secondary" disabled>Stop</button>
-            <button id="toggleTorch" class="secondary" title="Toggle flashlight (if supported)" disabled>
-              <span id="torchIcon">🔦</span> Torch
-            </button>
-            <button id="clearList" class="secondary">Clear attendance</button>
-            <button id="downloadCSV" class="success">Export CSV</button>
-          </div>
-          <div id="cameraInfo" class="small" style="margin-top:8px"></div>
-          <div style="margin-top:8px" class="small">
-            Tip: point camera at the QR, use good lighting. The scanner auto-submits on successful parse. Duplicate scans are ignored.
-          </div>
-        </div>
-        <canvas id="canvas"></canvas>
-      </div>
-
-      <div class="card" id="mapping">
-        <label>Field mapping (optional)</label>
-        <div class="small">If you know which Google Forms entry IDs are Name / Email, paste mappings as <code>entry.987764252=Name</code> each on its own line. This helps label fields correctly. If blank, the scanner will auto-detect email addresses.</div>
-        <textarea id="mappingsTextarea" rows="6" style="width:100%; margin-top:8px; padding:8px; border-radius:6px; border:1px solid #ddd" placeholder="entry.123456789=Name&#10;entry.987654321=Email"></textarea>
-        <div style="margin-top:8px; display:flex; gap:8px">
-          <button id="applyMapping">Apply mapping</button>
-          <button id="clearMapping" class="secondary">Clear mapping</button>
-        </div>
-      </div>
+  <h1>QR Attendance Scanner</h1>
+  <div class="scanner-container">
+    <video id="video" playsinline></video>
+    <div class="controls">
+      <button id="startScanner">Start Scanner</button>
+      <button id="stopScanner" disabled>Stop Scanner</button>
+      <button id="exportCSV">Export CSV</button>
     </div>
-
-    <div class="card" style="width:100%">
-      <div class="stats">
-        <strong>Attendance</strong>
-        <div class="stats-badge">Scanned: <span id="count">0</span></div>
-      </div>
-      <div class="attendance-table-container">
-        <table id="attTable">
-          <thead>
-            <tr><th>#</th><th>Time</th><th>Name</th><th>Email</th><th>Raw URL</th><th>Submission</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
+    <div id="scanFeedback"></div>
   </div>
 
-  <!-- Hidden iframe for form submission to avoid navigating away -->
-  <iframe id="submitFrame" name="submitFrame" style="display:none"></iframe>
+  <div class="attendance-list" id="attendanceList">
+    <p>No attendance records yet.</p>
+  </div>
 
-  <!-- Toast notification container -->
-  <div id="toastContainer"></div>
-
-  <!-- jsQR library CDN (fast, tiny) -->
-  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+  <div class="stats" id="stats">
+    <strong>Daily Totals:</strong>
+    <div id="dailyTotals"></div>
+  </div>
 
   <script>
-  // --- Config/state ---
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const toggleTorchBtn = document.getElementById('toggleTorch');
-  const clearListBtn = document.getElementById('clearList');
-  const downloadCSVBtn = document.getElementById('downloadCSV');
-  const countSpan = document.getElementById('count');
-  const attTableBody = document.querySelector('#attTable tbody');
-  const cameraInfo = document.getElementById('cameraInfo');
-  const mappingsTextarea = document.getElementById('mappingsTextarea');
-  const applyMappingBtn = document.getElementById('applyMapping');
-  const clearMappingBtn = document.getElementById('clearMapping');
-  const startSpinner = document.getElementById('startSpinner');
-  const startText = document.getElementById('startText');
-  const torchIcon = document.getElementById('torchIcon');
-  const scanIndicator = document.getElementById('scan-indicator');
+    const video = document.getElementById('video');
+    const startScannerBtn = document.getElementById('startScanner');
+    const stopScannerBtn = document.getElementById('stopScanner');
+    const exportBtn = document.getElementById('exportCSV');
+    const attendanceList = document.getElementById('attendanceList');
+    const scanFeedback = document.getElementById('scanFeedback');
+    const dailyTotalsEl = document.getElementById('dailyTotals');
 
-  let stream = null;
-  let scanning = false;
-  let scanAnimationId = null;
-  let lastScannedRaw = null;
-  let recentCooldown = new Set(); // dedupe set (emails or raw url)
-  let attendance = []; // array of {time, name, email, raw, status}
-  let fieldMapping = {}; // e.g. { "entry.987764252": "Name", ... }
-  let torchOn = false;
-  let videoTrack = null;
-  let scanInterval = null;
+    let stream = null;
+    let scanning = false;
+    let animationFrameId = null;
+    let attendanceRecords = JSON.parse(localStorage.getItem("attendanceRecords")) || [];
+    let scannedURLs = new Set(attendanceRecords.map(r => r.url));
 
-  // --- Toast notification system ---
-  function showToast(message, type = 'info', duration = 3000) {
-    const toast = document.createElement('div');
-    toast.className = toast ${type};
-    toast.textContent = message;
-    document.getElementById('toastContainer').appendChild(toast);
-    
-    // Trigger reflow
-    toast.offsetHeight;
-    
-    toast.classList.add('show');
-    
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 300);
-    }, duration);
-  }
+    // 🔹 Replace with your Google Form "formResponse" URL
+    const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfaUfvwcrpGWtVZQ1VpQn1WCbg5-I9Egv1ffFTXdDytVNTn8w/formResponse";
 
-  // --- Utilities ---
-  function parseQueryParams(url) {
-    try {
-      const u = new URL(url);
-      const params = {};
-      for (const [k,v] of u.searchParams.entries()) {
-        params[k] = v;
+    // 🔹 Replace with your actual entry IDs
+    const NAME_ENTRY = "entry.987764252";
+    const EMAIL_ENTRY = "entry.1142685410";
+    const CLASSROOM_ENTRY = "entry.1637381010";
+
+    // Initialize the app
+    updateAttendanceList();
+    updateStats();
+
+    startScannerBtn.addEventListener('click', startScanner);
+    stopScannerBtn.addEventListener('click', stopScanner);
+    exportBtn.addEventListener('click', exportCSV);
+
+    async function startScanner() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+        scanFrame();
+        startScannerBtn.disabled = true;
+        stopScannerBtn.disabled = false;
+        showFeedback("Scanner started", "success");
+      } catch (err) {
+        console.error(err);
+        showFeedback("Camera error", "error");
       }
-      return params;
-    } catch(e){
-      return null;
     }
-  }
 
-  function autoLabelFromKey(key, value) {
-    // If mapping exists, use it
-    if (fieldMapping[key]) return fieldMapping[key];
-    // Heuristic: if value contains '@' -> Email
-    if (/@/.test(value)) return 'Email';
-    // if contains spaces and uppercase -> likely Name
-    if (/\s/.test(value) || /[A-Z]/.test(value)) return 'Name';
-    // fallback: raw param key
-    return key;
-  }
+    function stopScanner() {
+      scanning = false;
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      startScannerBtn.disabled = false;
+      stopScannerBtn.disabled = true;
+      showFeedback("Scanner stopped", "success");
+    }
 
-  function sanitizeFilename(name) {
-    return name.replace(/[^a-z0-9_\-\.]/gi,'_');
-  }
-
-  function setCameraInfo(text) { 
-    cameraInfo.textContent = text; 
-  }
-
-  // --- Camera and scanning ---
-  async function startCamera() {
-    if (scanning) return;
-    
-    try {
-      startSpinner.style.display = 'inline-block';
-      startText.textContent = 'Starting...';
-      startBtn.disabled = true;
-      
-      const constraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false
-      };
-      
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = stream;
-      videoTrack = stream.getVideoTracks()[0];
-      
-      setCameraInfo(Camera started: ${videoTrack.label || 'camera'});
-      scanning = true;
-      stopBtn.disabled = false;
-      toggleTorchBtn.disabled = false;
-      
-      // Start scanning loop after video is playing
-      video.onloadedmetadata = () => {
-        video.play();
+    function scanFrame() {
+      if (!scanning) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
-        // Show scan indicator
-        scanIndicator.style.display = 'flex';
-        
-        // Start the scanning loop with high frequency
-        scanInterval = setInterval(scanFrame, 50); // 20 FPS for responsiveness
-      };
-      
-      showToast('Camera started successfully', 'success');
-      
-    } catch (err) {
-      console.error(err);
-      showToast('Camera permission denied or no camera available. Please allow camera access.', 'error', 5000);
-    } finally {
-      startSpinner.style.display = 'none';
-      startText.textContent = 'Start camera';
-      startBtn.disabled = false;
-    }
-  }
-
-  function scanFrame() {
-    if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-    
-    // Adjust canvas size to match video
-    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    }
-    
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Use jsQR with performance optimizations
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: 'dontInvert',
-    });
-    
-    if (code) {
-      // We found a QR code
-      const raw = code.data;
-      if (raw && raw !== lastScannedRaw) {
-        lastScannedRaw = raw;
-        processScannedRaw(raw);
-        
-        // Create a short cooldown to avoid reprocessing same code quickly
-        setTimeout(() => { lastScannedRaw = null }, 800);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) processQRCode(code.data);
       }
-    }
-  }
-
-  function stopCamera() {
-    if (!scanning) return;
-    
-    scanning = false;
-    
-    if (scanInterval) {
-      clearInterval(scanInterval);
-      scanInterval = null;
-    }
-    
-    if (stream) {
-      stream.getTracks().forEach(t => t.stop());
-      stream = null;
-      videoTrack = null;
-    }
-    
-    video.pause();
-    video.srcObject = null;
-    setCameraInfo('Camera stopped.');
-    stopBtn.disabled = true;
-    toggleTorchBtn.disabled = true;
-    
-    // Hide scan indicator
-    scanIndicator.style.display = 'none';
-    
-    showToast('Camera stopped', 'info');
-  }
-
-  async function setTorch(on) {
-    if (!videoTrack) return;
-    
-    const capabilities = videoTrack.getCapabilities && videoTrack.getCapabilities();
-    if (!capabilities || !capabilities.torch) {
-      setCameraInfo('Torch not supported on this device.');
-      showToast('Torch not supported on this device', 'error');
-      return;
-    }
-    
-    try {
-      await videoTrack.applyConstraints({ advanced: [{ torch: on }] });
-      torchOn = on;
-      toggleTorchBtn.textContent = on ? 'Torch: ON' : 'Toggle Torch';
-      torchIcon.textContent = on ? '💡' : '🔦';
-      showToast(Torch ${on ? 'enabled' : 'disabled'}, 'info');
-    } catch (e) {
-      console.warn('Torch toggle failed', e);
-      setCameraInfo('Torch toggle failed.');
-      showToast('Failed to toggle torch', 'error');
-    }
-  }
-
-  // --- Processing scanned links & auto-submit ---
-  function processScannedRaw(raw) {
-    // Expect: link to google form submission, e.g.
-    // https://docs.google.com/forms/d/e/1FAIpQL.../formResponse?entry.987764252=NAME&entry.1142685410=email%40domain.com
-    const params = parseQueryParams(raw);
-    if (!params) {
-      console.warn('Scanned data is not a URL', raw);
-      addAttendance({ time: new Date(), name:'(unparsed)', email:'', raw, status:'parse-fail' });
-      showToast('Failed to parse QR code content', 'error');
-      return;
+      animationFrameId = requestAnimationFrame(scanFrame);
     }
 
-    // Extract name/email by heuristics or field mapping
-    let name = '';
-    let email = '';
-    for (const key in params) {
-      const value = decodeURIComponent(params[key]);
-      const label = autoLabelFromKey(key, value);
-      if (label === 'Email' && !email) email = value;
-      else if (label === 'Name' && !name) name = value;
-      else {
-        // if mapping explicitly says Name or Email
-        if (fieldMapping[key] && fieldMapping[key].toLowerCase()==='name' && !name) name = value;
-        if (fieldMapping[key] && fieldMapping[key].toLowerCase()==='email' && !email) email = value;
+    function processQRCode(data) {
+      if (!data.startsWith("http")) {
+        showFeedback("Invalid QR code", "error");
+        return;
       }
-    }
 
-    // dedupe by email if available, else by raw URL
-    const dedupeKey = email || raw;
-    if (recentCooldown.has(dedupeKey)) {
-      console.log('Duplicate ignored:', dedupeKey);
-      showToast('Duplicate entry ignored', 'info', 1500);
-      return;
-    }
-    
-    recentCooldown.add(dedupeKey);
-    // remove dedupe key after 30s to allow re-scan later if needed
-    setTimeout(() => recentCooldown.delete(dedupeKey), 30_000);
+      let decodedURL;
+      try { decodedURL = decodeURIComponent(data); } catch { decodedURL = data; }
 
-    // auto-submit
-    submitToGoogleForms(raw).then(success => {
-      const status = success ? 'ok' : 'failed';
-      addAttendance({ time: new Date(), name, email, raw, status });
+      if (scannedURLs.has(decodedURL)) {
+        showFeedback("Duplicate scan rejected", "error");
+        return;
+      }
+
+      const info = extractInfoFromURL(decodedURL);
+      if (!info) {
+        showFeedback("Could not extract data", "error");
+        return;
+      }
+
+      const { name, email, classroom, timestamp } = info;
+      scannedURLs.add(decodedURL);
+
+      attendanceRecords.push({ name, email, classroom, timestamp, url: decodedURL });
       
-      if (success) {
-        showToast(Attendance recorded for ${name || email}, 'success');
-      } else {
-        showToast(Failed to submit form for ${name || email}, 'error');
-      }
-    });
-  }
+      // Save to localStorage
+      localStorage.setItem("attendanceRecords", JSON.stringify(attendanceRecords));
+      
+      updateAttendanceList();
+      updateStats();
+      showFeedback(`Attendance recorded: ${name}`, "success");
 
-  function submitToGoogleForms(url) {
-    // Strategy: create an invisible form with target to hidden iframe and submit.
-    return new Promise((resolve) => {
+      // Submit to Google Form
+      submitToGoogleForm(name, email, classroom, timestamp);
+    }
+
+    function extractInfoFromURL(url) {
       try {
-        const u = new URL(url);
-        // Only allow if URL host is docs.google.com or formResponse endpoint present
-        // (basic safety check)
-        if (!u.hostname.includes('google.com')) {
-          console.warn('Submission blocked: not a google.com URL', url);
-          resolve(false);
-          return;
-        }
-
-        // Build form element
-        const form = document.createElement('form');
-        form.style.display = 'none';
-        form.method = 'GET'; // many Google Forms accept GET for formResponse query
-        form.action = u.origin + u.pathname;
-        form.target = 'submitFrame'; // hidden iframe to avoid navigation
-
-        // Copy query params into inputs
-        for (const [k,v] of u.searchParams.entries()) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = k;
-          input.value = v;
-          form.appendChild(input);
-        }
-
-        // Append to body, submit, then remove.
-        document.body.appendChild(form);
-        
-        try {
-          form.submit();
-          setTimeout(() => {
-            document.body.removeChild(form);
-            resolve(true);
-          }, 500); // give the browser a moment
-        } catch (e) {
-          console.warn('form.submit failed', e);
-          document.body.removeChild(form);
-          resolve(false);
-        }
+        const urlObj = new URL(url);
+        const params = new URLSearchParams(urlObj.search);
+        let name = params.get("entry.987764252") || "Unknown Attendee";
+        let email = params.get("entry.1142685410") || "";
+        let classroom = params.get("entry.1637381010") || "Unknown Classroom";
+        const timestamp = new Date().toLocaleString();
+        return { name, email, classroom, timestamp };
       } catch (e) {
         console.error(e);
-        resolve(false);
-      }
-    });
-  }
-
-  // --- Attendance UI and CSV export ---
-  function addAttendance({time, name, email, raw, status}) {
-    const idx = attendance.length + 1;
-    attendance.push({time: time.toISOString(), name, email, raw, status});
-    
-    const tr = document.createElement('tr');
-    const timeStr = new Date(time).toLocaleString();
-    tr.innerHTML = `
-      <td>${idx}</td>
-      <td>${timeStr}</td>
-      <td>${escapeHtml(name || '')}</td>
-      <td>${escapeHtml(email || '')}</td>
-      <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(raw)}">${escapeHtml(raw)}</td>
-      <td class="${status==='ok' ? 'status-ok' : status==='failed' ? 'status-fail' : ''}">${status}</td>
-    `;
-    
-    attTableBody.prepend(tr); // newest first
-    countSpan.textContent = attendance.length;
-  }
-
-  function escapeHtml(s) {
-    if (!s) return '';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function exportCSV() {
-    if (attendance.length === 0) { 
-      showToast('No attendance data to export', 'error');
-      return; 
-    }
-    
-    const headers = ['time','name','email','raw_url','status'];
-    const rows = attendance.map(r => headers.map(h => "${(r[h]||'').replace(/"/g,'""')}").join(','));
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const filename = attendance_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv;
-    a.href = url;
-    a.download = sanitizeFilename(filename);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    
-    showToast(Exported ${attendance.length} records to CSV, 'success');
-  }
-
-  // --- Mapping UI ---
-  function applyMappingsFromTextarea() {
-    const lines = mappingsTextarea.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const map = {};
-    for (const line of lines) {
-      const m = line.match(/^([^=]+)=(.+)$/);
-      if (m) {
-        map[m[1].trim()] = m[2].trim(); // e.g. { "entry.987764252": "Name" }
+        return null;
       }
     }
-    fieldMapping = map;
-    showToast(Field mapping applied. ${Object.keys(fieldMapping).length} keys configured., 'success');
-  }
 
-  function clearMappings() {
-    fieldMapping = {};
-    mappingsTextarea.value = '';
-    showToast('Field mappings cleared', 'info');
-  }
+    function submitToGoogleForm(name, email, classroom, timestamp) {
+      const formData = new FormData();
+      formData.append(NAME_ENTRY, name);
+      formData.append(EMAIL_ENTRY, email);
+      formData.append(CLASSROOM_ENTRY, classroom);
 
-  // --- Event wiring ---
-  startBtn.addEventListener('click', startCamera);
-  stopBtn.addEventListener('click', stopCamera);
-  toggleTorchBtn.addEventListener('click', () => setTorch(!torchOn));
-  clearListBtn.addEventListener('click', () => {
-    if (!confirm('Clear attendance list? This cannot be undone.')) return;
-    attendance = [];
-    attTableBody.innerHTML = '';
-    countSpan.textContent = '0';
-    recentCooldown.clear();
-    showToast('Attendance list cleared', 'info');
-  });
-  downloadCSVBtn.addEventListener('click', exportCSV);
-  applyMappingBtn.addEventListener('click', applyMappingsFromTextarea);
-  clearMappingBtn.addEventListener('click', clearMappings);
+      fetch(formURL, { method: "POST", body: formData, mode: "no-cors" })
+        .then(() => console.log("Submitted:", name, email, classroom, timestamp))
+        .catch(err => console.error("Submit error:", err));
+    }
 
-  // Auto-start camera if user has previously allowed access
-  window.addEventListener('load', () => {
-    // Check if we have camera permission
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        const hasCamera = devices.some(device => device.kind === 'videoinput');
-        if (hasCamera) {
-          // Try to start camera automatically (will still ask for permission if needed)
-          startCamera();
-        }
-      })
-      .catch(err => {
-        console.log('Could not enumerate devices:', err);
+    function updateAttendanceList() {
+      if (attendanceRecords.length === 0) {
+        attendanceList.innerHTML = "<p>No attendance records yet.</p>";
+        return;
+      }
+      const items = attendanceRecords.map(r => `
+        <div class="attendance-item">
+          <div>
+            <strong>${r.name}</strong><br>
+            ${r.email ? r.email + "<br>" : ""}
+            <strong>${r.classroom}</strong><br>
+            <small>${r.timestamp}</small>
+          </div>
+          <div class="status-present">Present</div>
+        </div>
+      `).join("");
+      attendanceList.innerHTML = items;
+    }
+
+    function updateStats() {
+      const today = new Date().toLocaleDateString();
+      const todayRecords = attendanceRecords.filter(record => {
+        const recordDate = new Date(record.timestamp).toLocaleDateString();
+        return recordDate === today;
       });
-  });
+      
+      const classroomCounts = {};
+      todayRecords.forEach(record => {
+        classroomCounts[record.classroom] = (classroomCounts[record.classroom] || 0) + 1;
+      });
+      
+      let statsHTML = `<p>Total Today: ${todayRecords.length}</p>`;
+      for (const [classroom, count] of Object.entries(classroomCounts)) {
+        statsHTML += `<p>${classroom}: ${count}</p>`;
+      }
+      
+      dailyTotalsEl.innerHTML = statsHTML;
+    }
+
+    function exportCSV() {
+      if (attendanceRecords.length === 0) {
+        showFeedback("No data to export", "error");
+        return;
+      }
+
+      const headers = ["Timestamp", "Name", "Email", "Classroom"];
+      const csvContent = [
+        headers.join(","),
+        ...attendanceRecords.map(record => 
+          `"${record.timestamp}","${record.name}","${record.email}","${record.classroom}"`
+        )
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `attendance-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showFeedback("CSV exported successfully", "success");
+    }
+
+    function showFeedback(msg, type) {
+      scanFeedback.textContent = msg;
+      scanFeedback.className = type;
+      setTimeout(() => { scanFeedback.textContent = ""; }, 3000);
+    }
   </script>
 </body>
 </html>
