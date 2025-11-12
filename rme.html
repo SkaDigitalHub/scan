@@ -23,7 +23,7 @@
   </style>
 </head>
 <body>
-  <h1>QR Attendance Scanner</h1>
+  <h1>RME - QR Attendance Scanner</h1>
   <div class="scanner-container">
     <video id="video" playsinline></video>
     <div class="controls">
@@ -162,7 +162,7 @@
         let email = params.get("entry.518249278") || "";
         let membership = params.get("entry.1346483169") || "Unknown Membership";
         const timestamp = new Date().toLocaleString();
-        return { name, email, classroom, timestamp };
+        return { name, contact, location, email, membership, timestamp };
       } catch (e) {
         console.error(e);
         return null;
