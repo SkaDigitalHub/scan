@@ -66,7 +66,7 @@
     const CONTACT_ENTRY = "entry.612604998";
     const LOCATION_ENTRY = "entry.138675639";
     const EMAIL_ENTRY = "entry.518249278";
-    const MEMBERSHIP_ENTRY = "entry.1142685410";
+    const MEMBERSHIP_ENTRY = "entry.1346483169";
     
     // Initialize the app
     updateAttendanceList();
@@ -160,7 +160,7 @@
         let contact = params.get("entry.612604998") || "Unknown Contact";
         let location = params.get("entry.138675639") || "Unknown Location";
         let email = params.get("entry.518249278") || "";
-        let membership = params.get("entry.1142685410") || "Unknown Membership";
+        let membership = params.get("entry.1346483169") || "Unknown Membership";
         const timestamp = new Date().toLocaleString();
         return { name, contact, location, email, membership, timestamp };
       } catch (e) {
